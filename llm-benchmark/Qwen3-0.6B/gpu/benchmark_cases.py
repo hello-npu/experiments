@@ -188,12 +188,23 @@ vLLM의 Prometheus 메트릭(`vllm:request_prefill_time_seconds_sum`, `count`)�
 
 ## 하드웨어 및 소프트웨어 환경
 
-| 구분 | 항목 | 내용 |
+### 하드웨어 환경 (NVIDIA RTX A5000)
+
+| 항목 | 정보 | 비고 |
 |---|---|---|
-| **하드웨어** | GPU 모델 | NVIDIA RTX A5000 (24 GiB VRAM) |
-| | CUDA / Driver | 12.8 / 595.84 |
-| **소프트웨어** | Framework | vLLM 0.13.0 |
-| | Backend | PyTorch 2.9.0+cu128 (Python 3.12) |
+| **GPU 모델** | NVIDIA RTX A5000 | 디바이스 ID: `GPU 0` |
+| **GPU 메모리** | 24,564 MiB (24 GiB) | GDDR6 (384-bit, 대역폭 768 GB/s) |
+| **Driver / CUDA 버전** | 595.84 / 12.8 | PCIe Gen4 x16 |
+| **FP16 연산 성능** | 111.1 TFLOPS (Dense) / 222.2 TFLOPS (Sparse) | Tensor Core FP16 연산 |
+| **INT8 연산 성능** | 222.2 TOPS (Dense) / 444.4 TOPS (Sparse) | Tensor Core INT8 연산 |
+| **소비 전력 (TDP)** | 230 W | PCIe Max Power |
+
+### 소프트웨어 환경
+
+| 구분 | 패키지 | 버전 | 비고 |
+|---|---|---|---|
+| **vLLM** | `vllm` | `0.13.0` | 고성능 LLM 서빙 프레임워크 |
+| **PyTorch** | `torch` | `2.9.0+cu128` | PyTorch GPU 백엔드 (Python 3.12.3) |
 
 ---
 
