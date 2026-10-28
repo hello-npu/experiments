@@ -1,108 +1,85 @@
-# Qwen3-0.6B NPU 벤치마크 결과
+# Qwen3-0.6B NPU Prefill 벤치마크 결과
 
-`raw/` 디렉터리의 JSON 네 파일을 요약한 결과입니다. 시간은 별도 표기가 없으면 밀리초(ms), 처리량은 초당 요청 또는 토큰 기준입니다.
+vLLM의 Prometheus 메트릭(`vllm:request_prefill_time_seconds_sum`, `count`)을 이용하여 클라이언트 측정(TTFT)의 오버헤드를 배제하고 순수 서버 측 prefill 지연시간을 측정한 결과입니다.
 
 ## 공통 설정
 
-- 엔드포인트 / 백엔드: `openai-chat`
-- 모델: `/home/juwon/Qwen3-0.6B-fp16-dynamic/`
-- 테스트별 요청 수: 100
-- 요청 도착률: 무제한(`inf`), burstiness: 1.0
-- 설정 동시성: 1
-- 전체 테스트에서 성공 100건, 실패 0건
-- `request_goodput`은 네 결과 모두 `null`
+- 엔드포인트: `http://localhost:8000/v1/completions`
+- 모델: `/home/juwon/Qwen3-0.6B-fp16-dynamic`
+- 테스트 요청 수: 100건 (성공 100건, 실패 0건)
+- 입력 토큰: 1,024 tokens
+- 출력 토큰: 32 tokens
+- 동시성: 1
 
-## 하드웨어 환경 (NPU)
+## 하드웨어 및 소프트웨어 환경
 
-`rbln-smi`를 통해 확인된 NPU 사양 및 장치 정보입니다.
+### 하드웨어 환경 (Rebellions ATOM - RBLN-CA22)
 
-| 항목 | 정보 |
-|---|---|
-| **NPU 모델** | RBLN-CA22 |
-| **디바이스 ID** | `rbln0` (NPU 0) |
-| **PCI BUS ID** | `0000:24:00.0` |
-| **NPU 메모리** | 15.7 GiB |
-| **KMD (Kernel Module Driver) 버전** | 3.0.0 |
-
-### 칩 주요 스펙 (RBLN-CA22 / ATOM)
-
-| 항목 | 스펙 | 비고 |
+| 항목 | 정보 | 비고 |
 |---|---|---|
-| **FP16 연산 성능** | 64 TFLOPS | FP16 / BF16 연산 성능 |
-| **INT8 연산 성능** | 128 TOPS | 8-bit 정밀도 연산 성능 |
-| **DRAM 대역폭 (BW)** | 288 GB/s | 16 GiB GDDR6 메모리 대역폭 |
-| **소비 전력 (TDP)** | 약 60 ~ 75 W | 저전력 PCIe 폼팩터 |
+| **NPU 모델** | RBLN-CA22 (ATOM) | 디바이스 ID: `rbln0` (NPU 0) |
+| **PCI BUS ID** | `0000:24:00.0` | PCIe Gen5 호환 |
+| **NPU 메모리** | 15.7 GiB (16 GiB GDDR6) | 대역폭 288 GB/s |
+| **FP16 연산 성능** | 64 TFLOPS | FP16 / BF16 연산 |
+| **INT8 연산 성능** | 128 TOPS | 8-bit 정밀도 연산 |
+| **소비 전력 (TDP)** | 약 60 ~ 75 W | 초저전력 설계 |
+| **KMD 드라이버 버전** | 3.0.0 | Rebellions Kernel Module Driver |
 
-## 소프트웨어 환경
-
-가상환경(`/home/juwon/rbln-env`, Python 3.12.3)의 주요 패키지 및 RBLN 관련 버전 정보입니다.
+### 소프트웨어 환경
 
 | 구분 | 패키지 | 버전 | 비고 |
 |---|---|---|---|
-| **RBLN** | `rebel-compiler` | `0.10.1` | Rebellions NPU 컴파일러 |
-| | `optimum-rbln` | `0.10.1` | Hugging Face Optimum RBLN 연동 |
+| **RBLN SDK** | `rebel-compiler` | `0.10.1` | Rebellions NPU 컴파일러 |
+| | `optimum-rbln` | `0.10.1` | Hugging Face Optimum 연동 |
 | | `torch-rbln` | `0.1.7` | PyTorch RBLN 백엔드 |
 | | `vllm_rbln` | `0.10.1.post2` | vLLM RBLN 백엔드 |
 | **vLLM** | `vllm` | `0.13.0` | 고성능 LLM 서빙 프레임워크 |
-| **PyTorch** | `torch` | `2.9.0+cpu` | PyTorch 기본 패키지 |
-| | `torchvision` | `0.24.0+cpu` | Vision 유틸리티 |
-| | `torchaudio` | `2.9.0+cpu` | Audio 유틸리티 |
+| **PyTorch** | `torch` | `2.9.0+cpu` | PyTorch 호스트 백엔드 (Python 3.12.3) |
+| | `torchvision` | `0.24.0+cpu` | Vision 모듈 |
+| | `torchaudio` | `2.9.0+cpu` | Audio 모듈 |
 
-> 참고: RBLN 시스템 드라이버 및 도구(`rebellions-dkms`, `rebellions-tool`, `librbln` 등) 버전은 `3.0.0`입니다.
+> 시스템 드라이버 및 도구(`rebellions-dkms`, `rebellions-tool`, `librbln`): 버전 `3.0.0`
 
-## 전체 결과
+---
 
-| 테스트 | 입력 토큰/요청 | 출력 토큰/요청 | 실행 시간(s) | 요청 처리량(req/s) | 출력 처리량(tok/s) | 전체 토큰 처리량(tok/s) | 최대 출력 속도(tok/s) | 관측 최대 동시 요청 |
-|---|---:|---:|---:|---:|---:|---:|---:|---:|
-| Short | 128 | 128 | 108.30 | 0.923 | 118.19 | 236.37 | 129 | 2 |
-| Prefill | 1,024 | 32 | 39.90 | 2.506 | 80.20 | 2,646.73 | 94 | 4 |
-| Decode | 128 | 512 | 431.03 | 0.232 | 118.79 | 148.48 | 132 | 2 |
-| Mixed | 1,024 | 256 | 238.63 | 0.419 | 107.28 | 536.38 | 124 | 2 |
+## Prefill 메트릭 도출 과정
 
-## 지연시간
+TTFT(Time To First Token)에는 HTTP 네트워크 왕복 시간(RTT), 웹 서버 요청 파싱, 스케줄링 큐 대기 시간 등이 포함됩니다.  
+반면 vLLM 내부 Prometheus 메트릭은 NPU 가속기에서 수행한 순수 prefill(Prompt processing) 시간만을 엔진 레벨에서 집계하므로 신뢰도 높은 실제 연산 지연시간을 제공합니다.
 
-TTFT는 첫 토큰까지의 시간, TPOT은 출력 토큰당 시간, ITL은 토큰 간 시간, E2EL은 요청 전체 완료 시간입니다. 각 값은 평균 / 중앙값 / 표준편차 / p99 순서입니다.
+### 1. Prometheus 메트릭 전/후 스냅샷
 
-### Short
+| 시점 | `request_prefill_time_seconds_sum` | `request_prefill_time_seconds_count` | 비고 |
+|---|---:|---:|---|
+| **벤치마크 실행 전 (Pre)** | 0.112585 s | 1 | 워밍업 이후 기준선 |
+| **벤치마크 실행 후 (Post)** | 1.959103 s | 101 | 100건 요청 완료 시점 |
+| **변화량 (Delta, $\Delta$)** | **1.846518 s** | **100 회** | 테스트 구간 누적 prefill |
 
-원본: [`raw/short_20261022_214318.json`](./raw/short_20261022_214318.json)
+### 2. 평균 Prefill 시간 계산
 
-| 지표 | 평균 | 중앙값 | 표준편차 | p99 |
-|---|---:|---:|---:|---:|
-| TTFT | 38.04 | 37.47 | 2.42 | 43.76 |
-| TPOT | 8.22 | 8.23 | 0.34 | 8.77 |
-| ITL | 8.16 | 8.37 | 0.99 | 9.59 |
-| E2EL | 1,082.52 | 1,082.81 | 43.78 | 1,155.25 |
+$$\text{Avg Prefill Time} = \frac{\Delta \text{request\_prefill\_time\_seconds\_sum}}{\Delta \text{request\_prefill\_time\_seconds\_count}} \times 1000\text{ (ms)}$$
 
-### Prefill
+$$\text{Avg Prefill Time} = \frac{1.846518}{100} \times 1000 = \mathbf{18.465\text{ ms}}$$
 
-원본: [`raw/prefill_20261022_214936.json`](./raw/prefill_20261022_214936.json)
+---
 
-| 지표 | 평균 | 중앙값 | 표준편차 | p99 |
-|---|---:|---:|---:|---:|
-| TTFT | 136.08 | 136.51 | 11.33 | 155.42 |
-| TPOT | 8.46 | 8.36 | 0.41 | 9.27 |
-| ITL | 8.19 | 8.31 | 1.73 | 9.85 |
-| E2EL | 398.41 | 401.19 | 17.60 | 423.28 |
+## 결과 비교: TTFT vs 순수 Prefill 지연시간
 
-### Decode
+| 지표 | 지연시간 (ms) | 설명 |
+|---|---:|---|
+| **순수 Prefill 시간 (Prometheus 메트릭)** | **18.465 ms** | **NPU 가속기 엔진 내부 순수 Prompt Processing 시간** |
+| **클라이언트 측정 TTFT (평균)** | 29.25 ms | HTTP 전송 + 스케줄링 대기 + Prefill 합산 |
+| **클라이언트 측정 TTFT (중앙값 / P50)** | 29.28 ms | 중간값 기준 TTFT |
+| **클라이언트 측정 TTFT (P95)** | 32.51 ms | 95분위수 TTFT |
+| **클라이언트 측정 TTFT (P99)** | 34.86 ms | 99분위수 TTFT |
+| **토큰 간 생성 시간 (ITL 평균)** | 8.01 ms | Decode 단계의 평균 1토큰 생성 시간 |
+| **요청당 전체 지연시간 (E2E 평균)** | 277.67 ms | 요청 완료까지의 평균 시간 |
 
-원본: [`raw/decode_20261022_215037.json`](./raw/decode_20261022_215037.json)
+### 처리량 (Throughput)
 
-| 지표 | 평균 | 중앙값 | 표준편차 | p99 |
-|---|---:|---:|---:|---:|
-| TTFT | 39.64 | 38.73 | 4.06 | 50.62 |
-| TPOT | 8.36 | 8.38 | 0.29 | 8.70 |
-| ITL | 8.34 | 8.50 | 0.84 | 9.61 |
-| E2EL | 4,309.58 | 4,323.21 | 150.10 | 4,486.48 |
-
-### Mixed
-
-원본: [`raw/mixed_20261022_215826.json`](./raw/mixed_20261022_215826.json)
-
-| 지표 | 평균 | 중앙값 | 표준편차 | p99 |
-|---|---:|---:|---:|---:|
-| TTFT | 139.35 | 139.05 | 11.04 | 156.12 |
-| TPOT | 8.81 | 8.86 | 0.27 | 9.20 |
-| ITL | 8.77 | 8.93 | 1.08 | 10.05 |
-| E2EL | 2,385.58 | 2,396.16 | 71.40 | 2,493.17 |
+| 항목 | 수치 |
+|---|---:|
+| **실행 시간** | 27.81 s |
+| **요청 처리량 (Req Throughput)** | 3.60 req/s |
+| **출력 토큰 처리량 (Output Throughput)** | 115.06 tok/s |
+| **전체 토큰 처리량 (Total Throughput)** | 3797.00 tok/s |
