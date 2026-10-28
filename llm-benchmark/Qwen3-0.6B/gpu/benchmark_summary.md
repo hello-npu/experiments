@@ -1,105 +1,76 @@
-# Qwen3-0.6B GPU 벤치마크 결과
+# Qwen3-0.6B GPU Prefill 벤치마크 결과
 
-`raw/` 디렉터리의 JSON 파일을 요약한 결과입니다. 시간은 별도 표기가 없으면 밀리초(ms), 처리량은 초당 요청 또는 토큰 기준입니다.
+vLLM의 Prometheus 메트릭(`vllm:request_prefill_time_seconds_sum`, `count`)을 이용하여 클라이언트 측정(TTFT)의 오버헤드를 배제하고 순수 서버 측 prefill 지연시간을 측정한 결과입니다.
 
 ## 공통 설정
 
-- 엔드포인트 / 백엔드: `openai-chat`
+- 엔드포인트: `http://localhost:8001/v1/completions`
 - 모델: `Qwen/Qwen3-0.6B`
-- 테스트별 요청 수: 100
-- 요청 도착률: 무제한(`inf`), burstiness: 1.0
-- 설정 동시성: 1
-- 전체 테스트에서 성공 100건, 실패 0건
-- `request_goodput`은 네 결과 모두 `null`
+- 테스트 요청 수: 100건 (성공 100건, 실패 0건)
+- 입력 토큰: 1,024 tokens
+- 출력 토큰: 32 tokens
+- 동시성: 1
 
-## 하드웨어 환경 (GPU)
+## 하드웨어 및 소프트웨어 환경
 
-`nvidia-smi`를 통해 확인된 GPU 사양 및 장치 정보입니다.
+### 하드웨어 환경 (NVIDIA RTX A5000)
 
-| 항목 | 정보 |
-|---|---|
-| **GPU 모델** | NVIDIA RTX A5000 |
-| **디바이스 ID** | `GPU 0` (NVIDIA RTX A5000) |
-| **PCI BUS ID** | `0000:01:00.0` |
-| **GPU 메모리 (VRAM)** | 24,564 MiB (24 GiB) |
-| **Driver 버전** | 595.84 |
-| **CUDA 버전 (드라이버/런타임)** | 12.8 |
-
-### 칩 주요 스펙 (NVIDIA RTX A5000)
-
-| 항목 | 스펙 | 비고 |
+| 항목 | 정보 | 비고 |
 |---|---|---|
+| **GPU 모델** | NVIDIA RTX A5000 | 디바이스 ID: `GPU 0` |
+| **GPU 메모리** | 24,564 MiB (24 GiB) | GDDR6 (384-bit, 대역폭 768 GB/s) |
+| **Driver / CUDA 버전** | 595.84 / 12.8 | PCIe Gen4 x16 |
 | **FP16 연산 성능** | 111.1 TFLOPS (Dense) / 222.2 TFLOPS (Sparse) | Tensor Core FP16 연산 |
 | **INT8 연산 성능** | 222.2 TOPS (Dense) / 444.4 TOPS (Sparse) | Tensor Core INT8 연산 |
-| **DRAM 대역폭 (BW)** | 768 GB/s | 24 GB GDDR6 (384-bit) |
 | **소비 전력 (TDP)** | 230 W | PCIe Max Power |
 
-## 소프트웨어 환경
-
-가상환경(`/home/modu1/npu_juwon_tmp/.venv`, Python 3.12.3)의 주요 패키지 및 GPU 관련 버전 정보입니다.
+### 소프트웨어 환경
 
 | 구분 | 패키지 | 버전 | 비고 |
 |---|---|---|---|
-| **GPU 드라이버** | `NVIDIA Driver` | `595.84` | NVIDIA 공식 드라이버 |
-| **CUDA** | `CUDA Runtime` | `12.8` | PyTorch/vLLM cu128 |
 | **vLLM** | `vllm` | `0.13.0` | 고성능 LLM 서빙 프레임워크 |
-| **PyTorch** | `torch` | `2.9.0+cu128` | PyTorch GPU 백엔드 |
-| | `torchvision` | `0.24.0+cu128` | Vision 유틸리티 |
-| | `torchaudio` | `2.9.0+cu128` | Audio 유틸리티 |
+| **PyTorch** | `torch` | `2.9.0+cu128` | PyTorch GPU 백엔드 (Python 3.12.3) |
 
-## 전체 결과
+---
 
-| 테스트 | 입력 토큰/요청 | 출력 토큰/요청 | 실행 시간(s) | 요청 처리량(req/s) | 출력 처리량(tok/s) | 전체 토큰 처리량(tok/s) | 최대 출력 속도(tok/s) | 관측 최대 동시 요청 |
-|---|---:|---:|---:|---:|---:|---:|---:|---:|
-| Short | 128 | 128 | 39.47 | 2.533 | 324.27 | 648.54 | 328 | 4 |
-| Prefill | 1,024 | 32 | 11.18 | 8.943 | 286.17 | 9,443.67 | 296 | 10 |
-| Decode | 128 | 512 | 157.16 | 0.636 | 325.79 | 407.23 | 330 | 2 |
-| Mixed | 1,024 | 256 | 85.53 | 1.169 | 299.30 | 1,496.51 | 306 | 3 |
+## Prefill 메트릭 도출 과정
 
-## 지연시간
+TTFT(Time To First Token)에는 HTTP 네트워크 왕복 시간(RTT), 웹 서버 파싱, 요청 스케줄링 큐 대기 시간 등이 포함됩니다.  
+반면 vLLM 내부 Prometheus 메트릭은 모델 실행 엔진이 실제로 수행한 순수 prefill(Prompt processing) 시간만을 집계하므로 정확한 연산 시간을 제공합니다.
 
-TTFT는 첫 토큰까지의 시간, TPOT은 출력 토큰당 시간, ITL은 토큰 간 시간, E2EL은 요청 전체 완료 시간입니다. 각 값은 평균 / 중앙값 / 표준편차 / p99 순서입니다.
+### 1. Prometheus 메트릭 전/후 스냅샷
 
-### Short
+| 시점 | `request_prefill_time_seconds_sum` | `request_prefill_time_seconds_count` | 비고 |
+|---|---:|---:|---|
+| **벤치마크 실행 전 (Pre)** | 0.477312 s | 102 | 워밍업 이후 기준선 |
+| **벤치마크 실행 후 (Post)** | 0.892326 s | 202 | 100건 요청 완료 시점 |
+| **변화량 (Delta, $\Delta$)** | **0.415014 s** | **100 회** | 테스트 구간 누적 prefill |
 
-원본: [`raw/short_20261028_203433.json`](./raw/short_20261028_203433.json)
+### 2. 평균 Prefill 시간 계산
 
-| 지표 | 평균 | 중앙값 | 표준편차 | p99 |
-|---|---:|---:|---:|---:|
-| TTFT | 8.30 | 8.27 | 0.25 | 8.93 |
-| TPOT | 3.04 | 3.04 | 0.01 | 3.07 |
-| ITL | 3.02 | 3.04 | 0.28 | 3.29 |
-| E2EL | 394.52 | 394.33 | 1.16 | 398.84 |
+$$\text{Avg Prefill Time} = \frac{\Delta \text{request\_prefill\_time\_seconds\_sum}}{\Delta \text{request\_prefill\_time\_seconds\_count}} \times 1000\text{ (ms)}$$
 
-### Prefill
+$$\text{Avg Prefill Time} = \frac{0.415014}{100} \times 1000 = \mathbf{4.150\text{ ms}}$$
 
-원본: [`raw/prefill_20261028_203519.json`](./raw/prefill_20261028_203519.json)
+---
 
-| 지표 | 평균 | 중앙값 | 표준편차 | p99 |
-|---|---:|---:|---:|---:|
-| TTFT | 10.95 | 10.97 | 0.58 | 12.32 |
-| TPOT | 3.25 | 3.24 | 0.02 | 3.31 |
-| ITL | 3.14 | 3.24 | 0.57 | 3.54 |
-| E2EL | 111.62 | 111.55 | 0.82 | 113.74 |
+## 결과 비교: TTFT vs 순수 Prefill 지연시간
 
-### Decode
+| 지표 | 지연시간 (ms) | 설명 |
+|---|---:|---|
+| **순수 Prefill 시간 (Prometheus 메트릭)** | **4.150 ms** | **vLLM 엔진 내부 순수 Prompt Processing 시간** |
+| **클라이언트 측정 TTFT (평균)** | 9.21 ms | HTTP 전송 + 스케줄링 대기 + Prefill 합산 |
+| **클라이언트 측정 TTFT (중앙값 / P50)** | 9.18 ms | 중간값 기준 TTFT |
+| **클라이언트 측정 TTFT (P95)** | 10.04 ms | 95분위수 TTFT |
+| **클라이언트 측정 TTFT (P99)** | 10.30 ms | 99분위수 TTFT |
+| **토큰 간 생성 시간 (ITL 평균)** | 3.15 ms | Decode 단계의 평균 1토큰 생성 시간 |
+| **요청당 전체 지연시간 (E2E 평균)** | 107.05 ms | 요청 완료까지의 평균 시간 |
 
-원본: [`raw/decode_20261028_203536.json`](./raw/decode_20261028_203536.json)
+### 처리량 (Throughput)
 
-| 지표 | 평균 | 중앙값 | 표준편차 | p99 |
-|---|---:|---:|---:|---:|
-| TTFT | 8.52 | 8.44 | 0.35 | 9.78 |
-| TPOT | 3.06 | 3.06 | 0.01 | 3.08 |
-| ITL | 3.05 | 3.06 | 0.16 | 3.28 |
-| E2EL | 1,571.33 | 1,570.38 | 4.62 | 1,582.96 |
-
-### Mixed
-
-원본: [`raw/mixed_20261028_203820.json`](./raw/mixed_20261028_203820.json)
-
-| 지표 | 평균 | 중앙값 | 표준편차 | p99 |
-|---|---:|---:|---:|---:|
-| TTFT | 23.72 | 25.73 | 4.87 | 26.67 |
-| TPOT | 3.26 | 3.26 | 0.01 | 3.28 |
-| ITL | 3.25 | 3.26 | 0.22 | 3.49 |
-| E2EL | 855.08 | 856.90 | 5.65 | 861.49 |
+| 항목 | 수치 |
+|---|---:|
+| **실행 시간** | 10.72 s |
+| **요청 처리량 (Req Throughput)** | 9.33 req/s |
+| **출력 토큰 처리량 (Output Throughput)** | 298.47 tok/s |
+| **전체 토큰 처리량 (Total Throughput)** | 9849.55 tok/s |
