@@ -24,6 +24,15 @@
 | **NPU 메모리** | 15.7 GiB |
 | **KMD (Kernel Module Driver) 버전** | 3.0.0 |
 
+### 칩 주요 스펙 (RBLN-CA22 / ATOM)
+
+| 항목 | 스펙 | 비고 |
+|---|---|---|
+| **FP16 연산 성능** | 64 TFLOPS | FP16 / BF16 연산 성능 |
+| **INT8 연산 성능** | 128 TOPS | 8-bit 정밀도 연산 성능 |
+| **DRAM 대역폭 (BW)** | 288 GB/s | 16 GiB GDDR6 메모리 대역폭 |
+| **소비 전력 (TDP)** | 약 60 ~ 75 W | 저전력 PCIe 폼팩터 |
+
 ## 소프트웨어 환경
 
 가상환경(`/home/juwon/rbln-env`, Python 3.12.3)의 주요 패키지 및 RBLN 관련 버전 정보입니다.
