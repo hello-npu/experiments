@@ -29,8 +29,8 @@
 
 | 항목 | 스펙 | 비고 |
 |---|---|---|
-| **FP16 연산 성능** | 138.9 TFLOPS (Dense) / 277.8 TFLOPS (Sparse) | Tensor Core FP16 연산 |
-| **INT8 연산 성능** | 277.8 TOPS (Dense) / 555.6 TOPS (Sparse) | Tensor Core INT8 연산 |
+| **FP16 연산 성능** | 111.1 TFLOPS (Dense) / 222.2 TFLOPS (Sparse) | Tensor Core FP16 연산 |
+| **INT8 연산 성능** | 222.2 TOPS (Dense) / 444.4 TOPS (Sparse) | Tensor Core INT8 연산 |
 | **DRAM 대역폭 (BW)** | 768 GB/s | 24 GB GDDR6 (384-bit) |
 | **소비 전력 (TDP)** | 230 W | PCIe Max Power |
 
