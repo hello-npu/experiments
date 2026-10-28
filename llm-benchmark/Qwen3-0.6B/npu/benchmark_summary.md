@@ -12,6 +12,35 @@
 - 전체 테스트에서 성공 100건, 실패 0건
 - `request_goodput`은 네 결과 모두 `null`
 
+## 하드웨어 환경 (NPU)
+
+`rbln-smi`를 통해 확인된 NPU 사양 및 장치 정보입니다.
+
+| 항목 | 정보 |
+|---|---|
+| **NPU 모델** | RBLN-CA22 |
+| **디바이스 ID** | `rbln0` (NPU 0) |
+| **PCI BUS ID** | `0000:24:00.0` |
+| **NPU 메모리** | 15.7 GiB |
+| **KMD (Kernel Module Driver) 버전** | 3.0.0 |
+
+## 소프트웨어 환경
+
+가상환경(`/home/juwon/rbln-env`, Python 3.12.3)의 주요 패키지 및 RBLN 관련 버전 정보입니다.
+
+| 구분 | 패키지 | 버전 | 비고 |
+|---|---|---|---|
+| **RBLN** | `rebel-compiler` | `0.10.1` | Rebellions NPU 컴파일러 |
+| | `optimum-rbln` | `0.10.1` | Hugging Face Optimum RBLN 연동 |
+| | `torch-rbln` | `0.1.7` | PyTorch RBLN 백엔드 |
+| | `vllm_rbln` | `0.10.1.post2` | vLLM RBLN 백엔드 |
+| **vLLM** | `vllm` | `0.13.0` | 고성능 LLM 서빙 프레임워크 |
+| **PyTorch** | `torch` | `2.9.0+cpu` | PyTorch 기본 패키지 |
+| | `torchvision` | `0.24.0+cpu` | Vision 유틸리티 |
+| | `torchaudio` | `2.9.0+cpu` | Audio 유틸리티 |
+
+> 참고: RBLN 시스템 드라이버 및 도구(`rebellions-dkms`, `rebellions-tool`, `librbln` 등) 버전은 `3.0.0`입니다.
+
 ## 전체 결과
 
 | 테스트 | 입력 토큰/요청 | 출력 토큰/요청 | 실행 시간(s) | 요청 처리량(req/s) | 출력 처리량(tok/s) | 전체 토큰 처리량(tok/s) | 최대 출력 속도(tok/s) | 관측 최대 동시 요청 |
